@@ -1,3 +1,4 @@
+use gloo::{events::EventListener};
 mod utils;
 extern crate js_sys;
 use color_space::*;
@@ -16,6 +17,10 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 extern "C" {
   #[wasm_bindgen(js_namespace = console)]
   fn log(a: &str);
+}
+
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
 }
 
 struct Particle {
@@ -41,9 +46,15 @@ struct Bar {
 }
 
 impl Bar {
-  pub fn draw(&self, context: CanvasRenderingContext2d) {
+  pub fn draw(&self, context: &CanvasRenderingContext2d) {
     context.set_fill_style(&self.col);
     context.fill_rect(self.x, self.y, self.width, self.height);
+  }
+}
+
+impl Bar {
+  pub fn moveRight(&mut self) {
+    self.x += 100.0;
   }
 }
 
@@ -63,14 +74,35 @@ pub fn main() {
     .dyn_into::<CanvasRenderingContext2d>()
     .unwrap();
 
-  let bar = Bar {
+  let mut bar = Bar {
     x: (canvas.width() / 2) as f64,
     y: (canvas.height() - 50) as f64,
     width: 100.0,
     height: 10.0,
     col: JsValue::from_str("green"),
   };
-  bar.draw(context);
+  bar.draw(&context);
+
+  // キーボード入力
+  let onkey = EventListener::new(&document,"keydown",move|event|{
+    let keyevent = event.clone().dyn_into::<KeyboardEvent>().unwrap();
+    let mut event_str = String::from("");
+    event_str.push_str(&event.type_());
+    event_str.push_str(&" : ");
+    event_str.push_str(&keyevent.key());
+    if keyevent.ctrl_key() && keyevent.alt_key(){
+      console_log!("true");
+    }
+    console_log!("{}",event_str);
+
+    // 右キー押下時
+    if &keyevent.key() == "ArrowRight" {
+      bar.moveRight();
+      bar.draw(&context);
+    }
+  });
+  onkey.forget();
+
 }
 
 #[wasm_bindgen]

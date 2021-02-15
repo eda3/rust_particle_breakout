@@ -27,6 +27,7 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 wee_alloc = { version = "0.4.5", optional = true }
 js-sys = "0.3.47"
 color_space = "0.5.3"
+gloo = "0.2.1"
 [dependencies.web-sys]
 version = "0.3.47"
 features = [
@@ -35,6 +36,7 @@ features = [
     "Element",
     "HtmlCanvasElement",
     "ImageData",
+    "KeyboardEvent",
     "Performance",
     "Window",
 ]
