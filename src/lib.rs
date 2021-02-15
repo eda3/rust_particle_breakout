@@ -2,7 +2,6 @@ use gloo::{events::EventListener};
 mod utils;
 extern crate js_sys;
 use color_space::*;
-use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{Clamped, JsCast};
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData, KeyboardEvent};
@@ -50,11 +49,18 @@ impl Bar {
     context.set_fill_style(&self.col);
     context.fill_rect(self.x, self.y, self.width, self.height);
   }
-}
-
-impl Bar {
-  pub fn moveRight(&mut self) {
-    self.x += 100.0;
+  pub fn remove(&self, context: &CanvasRenderingContext2d) {
+    context.clear_rect(0.0, 0.0, 500.0, 500.0);
+  }
+  pub fn move_right(&mut self) {
+    self.x += 10.0;
+  }
+  pub fn move_left(&mut self) {
+    self.x -= 10.0;
+  }
+  pub fn tick(&self, context: &CanvasRenderingContext2d) {
+    self.remove(context);
+    self.draw(context);
   }
 }
 
@@ -97,8 +103,14 @@ pub fn main() {
 
     // 右キー押下時
     if &keyevent.key() == "ArrowRight" {
-      bar.moveRight();
-      bar.draw(&context);
+      bar.move_right();
+      bar.tick(&context);
+    }
+
+    // 左キー押下時
+    if &keyevent.key() == "ArrowLeft" {
+      bar.move_left();
+      bar.tick(&context);
     }
   });
   onkey.forget();
