@@ -1,10 +1,8 @@
-use gloo::{events::EventListener};
-mod utils;
 extern crate js_sys;
 use color_space::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::{Clamped, JsCast};
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData, KeyboardEvent};
+use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, ImageData};
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -36,6 +34,7 @@ impl Particle {
   }
 }
 
+#[wasm_bindgen]
 struct Bar {
   x: f64,
   y: f64,
@@ -44,6 +43,8 @@ struct Bar {
   col: JsValue,
 }
 
+
+#[wasm_bindgen]
 impl Bar {
   pub fn draw(&self, context: &CanvasRenderingContext2d) {
     context.set_fill_style(&self.col);
@@ -64,56 +65,73 @@ impl Bar {
   }
 }
 
-#[wasm_bindgen]
-pub fn main() {
-  let window = web_sys::window().expect("no global `window` exists");
-  let document = window.document().expect("should have a document on window");
-  let canvas = document
+fn window() -> web_sys::Window {
+  web_sys::window().expect("no global `window` exists")
+}
+
+fn document() -> web_sys::Document {
+  window().document().expect("should have a document on window")
+}
+
+fn canvas() -> web_sys::HtmlCanvasElement{
+  document()
     .get_element_by_id("canvas_hybrid")
     .unwrap()
     .dyn_into::<HtmlCanvasElement>()
-    .unwrap();
-  let context = canvas
+    .unwrap()
+}
+
+fn context() -> web_sys::CanvasRenderingContext2d {
+  canvas()
     .get_context("2d")
     .unwrap()
     .unwrap()
     .dyn_into::<CanvasRenderingContext2d>()
-    .unwrap();
+    .unwrap()
+}
 
-  let mut bar = Bar {
-    x: (canvas.width() / 2) as f64,
-    y: (canvas.height() - 50) as f64,
-    width: 100.0,
-    height: 10.0,
-    col: JsValue::from_str("green"),
-  };
-  bar.draw(&context);
+#[wasm_bindgen]
+pub struct Game {
+  bar: Bar,
+}
 
-  // キーボード入力
-  let onkey = EventListener::new(&document,"keydown",move|event|{
-    let keyevent = event.clone().dyn_into::<KeyboardEvent>().unwrap();
-    let mut event_str = String::from("");
-    event_str.push_str(&event.type_());
-    event_str.push_str(&" : ");
-    event_str.push_str(&keyevent.key());
-    if keyevent.ctrl_key() && keyevent.alt_key(){
-      console_log!("true");
+#[wasm_bindgen]
+impl Game {
+  #[wasm_bindgen(constructor)]
+  pub fn new() -> Game {
+    let bar = Bar {
+      x: (canvas().width() / 2) as f64,
+      y: (canvas().height() - 50) as f64,
+      width: 100.0,
+      height: 1.0,
+      col: JsValue::from_str("green"),
+    };
+
+    Game {
+      bar,
     }
-    console_log!("{}",event_str);
+  }
 
-    // 右キー押下時
-    if &keyevent.key() == "ArrowRight" {
-      bar.move_right();
-      bar.tick(&context);
-    }
+  #[wasm_bindgen(method)]
+  pub fn render_loop(&self) {
+    console_log!("render_loop start");
+    let game_width = 500.0;
+    let game_height = 500.0;
+    let context = context();
 
-    // 左キー押下時
-    if &keyevent.key() == "ArrowLeft" {
-      bar.move_left();
-      bar.tick(&context);
-    }
-  });
-  onkey.forget();
+    context.clear_rect(0.0, 0.0, game_width, game_height);
+    &self.bar.draw(&context);
+  }
+
+  #[wasm_bindgen(method)]
+  pub fn on_key_right(&mut self) {
+    &self.bar.move_right();
+  }
+
+  #[wasm_bindgen(method)]
+  pub fn on_key_left(&mut self) {
+    &self.bar.move_left();
+  }
 
 }
 
